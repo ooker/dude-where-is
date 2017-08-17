@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Button, Image, Text, View  } from 'react-native';
+import { Animated, Button, Image, Text, View  } from 'react-native';
 import { Constants, Location, Permissions, Platform } from 'expo';
 
 import { CrossOSButton } from './ui/CrossOSButton';
@@ -9,11 +9,11 @@ export default class GeolocationWatch extends Component {
   state = {
     startLocation: {coords:{latitude:58.24, longitude:22.48}},
     //startLocation: {latitude:59.4227, longitude:24.7430}, // Tallinn
-    //startLocation: null,
     location: null,
     errorLocation: null,
-    heading: null,
     errorHeading: null,
+    heading: 0,
+    headingBuffer: [0,0,0,0,0],
     bearing: 0,
     distance: 0,
     appRunning: false,
@@ -40,7 +40,14 @@ export default class GeolocationWatch extends Component {
     this.setState({location : coords, bearing : bearing, distance : distance });
   }
   _updateHeading = (heading) => {
-    this.setState({heading:heading});
+    //a = [x, ...a.slice(0, 6)];
+    //let newBuffer = [heading, ...]
+    this.setState({ headingBuffer: [heading.trueHeading, ...this.state.headingBuffer.slice(0,4)] });
+
+    //let average = (this.state.headingBuffer) => this.state.headingBuffer.reduce((a, b) => a + b) / this.state.headingBuffer.length;
+    let average = this.state.headingBuffer.reduce((previous, current) => current += previous) / this.state.headingBuffer.length;
+    this.setState({heading:average});
+    console.log(average);
   }
 
   _getBearing = (location) =>{
@@ -93,7 +100,8 @@ export default class GeolocationWatch extends Component {
   _compassCircleRotation = () => {
     if(this.state.heading){
       return {
-       transform:[{ rotate: -this.state.heading.trueHeading+"deg" }]
+       //transform:[{ rotate: -this.state.heading.trueHeading+"deg" }]
+       transform:[{ rotate: -this.state.heading+"deg" }]
       }
     } else {
       return {transform:[{ rotate: "0deg" }] }
@@ -102,7 +110,8 @@ export default class GeolocationWatch extends Component {
   _compassArrowRotation = () => {
 
     if(this.state.heading){
-      let angle = this.state.bearing - this.state.heading.trueHeading;
+      //let angle = this.state.bearing - this.state.heading.trueHeading;
+      let angle = this.state.bearing - this.state.heading;
       return { position:"absolute", transform:[{ rotate: angle+"deg" }] }
     } else {
       return { position:"absolute", transform:[{ rotate: "0deg" }] }
